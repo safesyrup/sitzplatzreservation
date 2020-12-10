@@ -33,7 +33,13 @@ public class Controller {
                 database.addGuest();
                 break;
             case "2":
-                //code
+                database.addTeam();
+                break;
+            case "3":
+                database.addReservation();
+                break;
+            case "4":
+                database.addGame();
                 break;
             case "0":
                 mainMenu();
@@ -50,7 +56,7 @@ public class Controller {
                 printMenu();
                 break;
             case "2":
-                //code
+                database.printSeats();
                 break;
             case "0":
                 mainMenu();
@@ -91,8 +97,9 @@ public class Controller {
 
     public void addMenu() throws IOException, SQLException {
         System.out.println("1 Vip-Gast erfassen");
-        System.out.println("2 ");
-        System.out.println("3 ");
+        System.out.println("2 Team hinzufügen");
+        System.out.println("3 Reservation hinzufügen");
+        System.out.println("4 Spiel hinzufügen");
         System.out.println("0 zurück");
 
         chooseAddMenu();
@@ -100,6 +107,7 @@ public class Controller {
 
     public void printMenu() throws IOException, SQLException {
         System.out.println("1 Gäste anzeigen");
+        System.out.println("2 Sitze anzeigen");
         System.out.println("0 zurück");
 
         choosePrintMenu();
