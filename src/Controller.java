@@ -56,7 +56,8 @@ public class Controller {
                 printMenu();
                 break;
             case "2":
-                database.printSeats();
+                database.printSeats(null);
+                printMenu();
                 break;
             case "0":
                 mainMenu();

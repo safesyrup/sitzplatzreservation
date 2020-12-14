@@ -3,7 +3,6 @@ import de.vandermeer.asciitable.AsciiTable;
 import java.io.IOException;
 import java.sql.*;
 import java.util.ArrayList;
-import java.util.Arrays;
 
 public class Database {
     Controller controller;
@@ -21,7 +20,7 @@ public class Database {
         Class.forName("com.mysql.cj.jdbc.Driver");
     }
 
-    //guest stuff
+    //guest methods
     public void addGuest() throws SQLException, IOException {
         controller = new Controller();
         conn = DriverManager.getConnection(dbURL, username, password);
@@ -128,7 +127,7 @@ public class Database {
         controller.deleteMenu();
     }
 
-    //team stuff
+    //team methods
     public void addTeam() throws SQLException, IOException {
         controller = new Controller();
         conn = DriverManager.getConnection(dbURL, username, password);
@@ -169,17 +168,94 @@ public class Database {
 
     }
 
-    //reservation stuff
-    public void addReservation() throws SQLException {
+    //reservation methods
+    public void addReservation() throws SQLException, IOException {
         controller = new Controller();
         conn = DriverManager.getConnection(dbURL, username, password);
-        String sqlInsertStatement;
+        Statement statement = conn.createStatement();
+        ResultSet resultSet;
+        ArrayList<Integer> guestIds = new ArrayList<>(), gameIds = new ArrayList<>(), allSeats = new ArrayList<>(), takenSeats = new ArrayList<>(), availableSeats = new ArrayList<>();
+        String sqlInsertStatement, getGuestIdsQuery, getGamesIdsQuery, getSeatIdsTakenQuery;
+        String stringGuestInput, stringGameInput, stringSeatInput;
+        int intGuestInput, intGameInput, intSeatInput;
 
+        getGuestIdsQuery = "select guestId from seatreservationlesi.guest";
+        resultSet = statement.executeQuery(getGuestIdsQuery);
+        while (resultSet.next()) {
+            guestIds.add(resultSet.getInt("guestId"));
+        }
+        if (!guestIds.isEmpty()) {
+            printGuests();
+            System.out.println("id des Gastes:");
+            stringGuestInput = controller.readline();
+            intGuestInput = idTryParseInt(stringGuestInput);
+            intGuestInput = idIsInRange(guestIds, intGuestInput);
+
+            getGamesIdsQuery = "select gameId from seatreservationlesi.game";
+            resultSet = statement.executeQuery(getGamesIdsQuery);
+            while (resultSet.next()) {
+                gameIds.add(resultSet.getInt("gameId"));
+            }
+
+            if (!gameIds.isEmpty()) {
+                printGames();
+                System.out.println("id des Spiels:");
+                stringGameInput = controller.readline();
+                intGameInput = idTryParseInt(stringGameInput);
+                intGameInput = idIsInRange(gameIds, intGameInput);
+
+                getSeatIdsTakenQuery = "select seat.seatId from seatreservationlesi.game " +
+                        "inner join seatreservationlesi.reservation on game.gameId = reservation.game_gameId " +
+                        "inner join seatreservationlesi.seat on reservation.seat_seatId = seat.seatId " +
+                        "where game.gameId = " + intGameInput;
+                resultSet = statement.executeQuery(getSeatIdsTakenQuery);
+                //fill arraylist takenseats with all taken seats
+                while (resultSet.next()) {
+                    takenSeats.add(resultSet.getInt("seatId"));
+                }
+
+                //fill arraylist allseats with all seats
+                for (int i = 1; i <= 50; i++) {
+                    allSeats.add(i);
+                }
+
+                allSeats.removeAll(takenSeats);
+                availableSeats = allSeats;
+
+                if (!availableSeats.isEmpty()) {
+                    printSeats(intGameInput);
+                    System.out.println("id des Sitzes:");
+                    stringSeatInput = controller.readline();
+                    intSeatInput = idTryParseInt(stringSeatInput);
+                    intSeatInput = idIsInRange(availableSeats, intSeatInput);
+
+                    sqlInsertStatement = "insert into seatreservationlesi.reservation (game_gameId, seat_seatId, guest_guestId) values (?, ?, ?)";
+                    PreparedStatement preparedStatement = conn.prepareStatement(sqlInsertStatement);
+                    preparedStatement.setInt(1, intGameInput);
+                    preparedStatement.setInt(2, intSeatInput);
+                    preparedStatement.setInt(3, intGuestInput);
+
+                    preparedStatement.execute();
+
+                    System.out.println("Reservaiton wurde hinzugefüt");
+                } else {
+                    System.out.println("für dieses Spiel sind keine Sitzplätze mehr verfügbar");
+                }
+            } else {
+                System.out.println("es gibt noch keine Spiele");
+            }
+        } else {
+            System.out.println("es gibt noch keine Gäste");
+        }
+        controller.addMenu();
+    }
+
+    public void printReservation() {
 
     }
 
-    //seat stuff
-    public void printSeats() throws SQLException, IOException {
+    //seat methods
+    public void printSeats(Object gameId) throws SQLException, IOException {
         controller = new Controller();
         conn = DriverManager.getConnection(dbURL, username, password);
         String getGameRowcoutQuery = "select count(*) from seatreservationlesi.game";
@@ -192,102 +268,120 @@ public class Database {
         gameRowcount = resultSet.getInt("count(*)");
         if (gameRowcount > 1) {
             ArrayList<Integer> gameIds = new ArrayList<>();
-            ArrayList<String> seats = new ArrayList<>();
             String getGameIdsQuery = "select gameId from seatreservationlesi.game";
             String input;
-            String[] row1 = new String[11], row2 = new String[11], row3 = new String[11], row4 = new String[11], row5 = new String[11];
+            String[] row1 = new String[12], row2 = new String[12], row3 = new String[12], row4 = new String[12], row5 = new String[12];
             int idInput;
             AsciiTable asciiTable = new AsciiTable();
 
-            asciiTable.getContext().setWidth(250);
+            asciiTable.getContext().setWidth(75);
 
-            //fill arraylist with numbers to 50
-            for (int i = 0; i <= 50; i++) {
-                seats.add(i, ""+i);
-            }
+            //initialize first index of every row
+            row1[0] = "1";
+            row2[0] = "2";
+            row3[0] = "3";
+            row4[0] = "4";
+            row5[0] = "5";
 
-            row1[0] = "A";
-            row2[0] = "A";
-            row3[0] = "B";
-            row4[0] = "B";
-            row5[0] = "C";
+            //initialize last index of every row
+            row1[11] = "100.-";
+            row2[11] = "100.-";
+            row3[11] = "80.-";
+            row4[11] = "80.-";
+            row5[11] = "50.-";
 
+            //fill arraylist with ids
             resultSet = statement.executeQuery(getGameIdsQuery);
             while (resultSet.next()) {
                 gameIds.add(resultSet.getInt("gameId"));
             }
 
-            System.out.println("id des Spiels:");
-            printGames();
-            input = controller.readline();
-            idInput = idTryParseInt(input);
-            idInput = idIsInRange(gameIds, idInput);
-
-            String getSeatsFromGameQuery = "select seat.seatId from seatreservationlesi.game inner join seatreservationlesi.reservation on game.gameId = reservation.game_gameId inner join seatreservationlesi.seat on reservation.seat_seatId = seat.seatId inner join seatreservationlesi.category on seat.category_categoryId = category.categoryId where game.gameId = "+ idInput;
-            resultSet = statement.executeQuery(getSeatsFromGameQuery);
-            resultSet.next();
-            for (int i = 1; i <= 50; i++) {
-                if (i <= 10) {
-                    if (resultSet.next() && resultSet.getInt("seatId") == i) {
-                        row1[i] = "x";
-                    } else {
-                        row1[i] = ""+i;
-                    }
-                } else if (i <= 20) {
-                    if (resultSet.next() && resultSet.getInt("seatId") == i) {
-                        row2[i-10] = "x";
-                    } else {
-                        row2[i-10] = ""+i;
-                    }
-                } else if (i <= 30) {
-                    if (resultSet.next() && resultSet.getInt("seatId") == i) {
-                        row3[i-20] = "x";
-                    } else {
-                        row3[i-20] = ""+i;
-                    }
-                } else if (i <= 40) {
-                    if (resultSet.next() && resultSet.getInt("seatId") == i) {
-                        row4[i-30] = "x";
-                    } else {
-                        row4[i-30] = ""+i;
-                    }
-                } else {
-                    if (resultSet.next() && resultSet.getInt("seatId") == i) {
-                        row5[i-40] = "x";
-                    } else {
-                        row5[i-40] = ""+i;
-                    }
-                }
-                if (resultSet.next()) {
-                    resultSet.next();
-                }
+            if (gameId == null) {
+                System.out.println("id des Spiels:");
+                printGames();
+                input = controller.readline();
+                idInput = idTryParseInt(input);
+                idInput = idIsInRange(gameIds, idInput);
+            } else {
+                idInput = (int) gameId;
             }
 
-            for (int i = 1; i <= 50; i++) {
-                if (resultSet.next()) {
-                    resultSet.next();
-                }
+            String getSeatsFromGameQuery = "select seatId from seatreservationlesi.game " +
+                    "inner join seatreservationlesi.reservation on game.gameId = reservation.game_gameId " +
+                    "inner join seatreservationlesi.seat on reservation.seat_seatId = seat.seatId " +
+                    "inner join seatreservationlesi.category on seat.category_categoryId = category.categoryId " +
+                    "where game.gameId = " + idInput + " " +
+                    "order by seatId asc";
+            resultSet = statement.executeQuery(getSeatsFromGameQuery);
+            resultSet.next();
 
-                if (resultSet.next() && resultSet.getInt("seatId") == i) {
-                    seats.set(i, "x");
+            //this ugly code sets an x everywhere where the id in the row is allocated to a reservation
+            boolean hasnext = true;
+
+            for (int i = 1; i <= 50; i++) {
+                if (!hasnext) {
+                    hasnext = resultSet.next();
+                }
+                if (i <= 10) {
+                    if (hasnext && resultSet.getInt("seatId") == i) {
+                        row1[i] = "x";
+                        hasnext = false;
+                    } else {
+                        row1[i] = "" + i;
+                    }
+                } else if (i <= 20) {
+                    if (hasnext && resultSet.getInt("seatId") == i) {
+                        row2[i - 10] = "x";
+                        hasnext = false;
+                    } else {
+                        row2[i - 10] = "" + i;
+                    }
+                } else if (i <= 30) {
+                    if (hasnext && resultSet.getInt("seatId") == i) {
+                        row3[i - 20] = "x";
+                        hasnext = false;
+                    } else {
+                        row3[i - 20] = "" + i;
+                    }
+                } else if (i <= 40) {
+                    if (hasnext && resultSet.getInt("seatId") == i) {
+                        System.out.println("x");
+                        hasnext = false;
+                        row4[i - 30] = "x";
+                    } else {
+                        row4[i - 30] = "" + i;
+                    }
+                } else {
+                    if (hasnext && resultSet.getInt("seatId") == i) {
+                        row5[i - 40] = "x";
+                        hasnext = false;
+                    } else {
+                        row5[i - 40] = "" + i;
+                    }
                 }
             }
 
             asciiTable.addRule();
+            asciiTable.addRow(row1);
+            asciiTable.addRule();
+            asciiTable.addRow(row2);
+            asciiTable.addRule();
+            asciiTable.addRow(row3);
+            asciiTable.addRule();
+            asciiTable.addRow(row4);
+            asciiTable.addRule();
+            asciiTable.addRow(row5);
 
-            for (int i = 1; i <= 5; i++) {
-                for (int j = 10; j <= 10; j++) {
-
-                }
-            }
-
+            String table = asciiTable.render();
+            System.out.println(table);
+            System.out.println("Sitzplätze mit 'x' sind vergeben");
+            System.out.println("");
         } else {
             System.out.println("es gibt noch keine spiele");
         }
-        controller.printMenu();
     }
 
-    //game stuff
+    //game methods
     public void addGame() throws SQLException, IOException {
         controller = new Controller();
         conn = DriverManager.getConnection(dbURL, username, password);
@@ -338,7 +432,8 @@ public class Database {
     public void printGames() throws SQLException {
         controller = new Controller();
         conn = DriverManager.getConnection(dbURL, username, password);
-        String getGameQuery = "select * from seatreservationlesi.game inner join seatreservationlesi.foreignteam on foreignteamId = game.foreignteam_foreignteamId";
+        String getGameQuery = "select * from seatreservationlesi.game " +
+                "inner join seatreservationlesi.foreignteam on foreignteamId = game.foreignteam_foreignteamId";
         Statement statement = conn.createStatement();
         ResultSet resultSet;
         AsciiTable asciiTable = new AsciiTable();
@@ -363,7 +458,7 @@ public class Database {
         System.out.println(table);
     }
 
-    //tryparse and checking
+    //tryparse and checking methods
     public boolean tryParseInt(String input) {
         try {
             Integer.parseInt(input);
@@ -381,7 +476,7 @@ public class Database {
         return Integer.parseInt(input);
     }
 
-    public int idIsInRange(ArrayList indexes, int input) throws IOException {
+    public int idIsInRange(ArrayList<Integer> indexes, int input) throws IOException {
         while (!indexes.contains(input)) {
             System.out.println("Fehler, bitte gültige Zahl eigeben");
             String stringInput = controller.readline();
