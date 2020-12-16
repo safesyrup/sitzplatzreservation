@@ -127,6 +127,67 @@ public class Database {
         controller.deleteMenu();
     }
 
+    public void editGuest() throws SQLException, IOException {
+        controller = new Controller();
+        conn = DriverManager.getConnection(dbURL, username, password);
+        Statement statement = conn.createStatement();
+        ResultSet resultSet;
+        String updateSqlStatement = "update seatreservationlesi.guest set foreName = ?, " +
+                "surName = ?, " +
+                "address = ?, " +
+                "dateOfBirth = ?, " +
+                "phone = ?, " +
+                "mobilePhone = ?, " +
+                "mail = ?" +
+                "where guestId = ?";
+        String getGuestIdsQuery = "select guestId from seatreservationlesi.guest";
+        ArrayList<Integer> guestIds = new ArrayList();
+        PreparedStatement preparedStatement;
+        String stringGuestInput;
+        int intGuestInput;
+
+        resultSet = statement.executeQuery(getGuestIdsQuery);
+
+        while (resultSet.next()) {
+            guestIds.add(resultSet.getInt("guestId"));
+        }
+
+        if (!guestIds.isEmpty()) {
+            printGuests();
+
+            if (conn.isClosed()) {
+                conn = DriverManager.getConnection(dbURL, username, password);
+            }
+
+            System.out.println("Id des zu editierenden Gastes:");
+            stringGuestInput = controller.readline();
+            intGuestInput = idTryParseInt(stringGuestInput);
+            intGuestInput = idIsInRange(guestIds, intGuestInput);
+
+            preparedStatement = conn.prepareStatement(updateSqlStatement);
+
+            System.out.println("Vorname:");
+            preparedStatement.setString(1, controller.readline());
+            System.out.println("Nachname:");
+            preparedStatement.setString(2, controller.readline());
+            System.out.println("Addresse:");
+            preparedStatement.setString(3, controller.readline());
+            System.out.println("Geburtsdatum:");
+            preparedStatement.setString(4, controller.readline());
+            System.out.println("Telefon:");
+            preparedStatement.setString(5, controller.readline());
+            System.out.println("Mobilnummer:");
+            preparedStatement.setString(6, controller.readline());
+            System.out.println("Email");
+            preparedStatement.setString(7, controller.readline());
+            preparedStatement.setInt(8, intGuestInput);
+
+            preparedStatement.execute();
+        }
+        controller.editMenu();
+        conn.close();
+    }
+
     //team methods
     public void addTeam() throws SQLException, IOException {
         controller = new Controller();
@@ -250,12 +311,51 @@ public class Database {
         controller.addMenu();
     }
 
-    public void printReservation() {
+    public void printReservation() throws SQLException, IOException {
+        controller = new Controller();
+        conn = DriverManager.getConnection(dbURL, username, password);
+        String sqlQuery = "select reservationId, seatId, price, foreName, surName, mail, seatRow, time from seatreservationlesi.reservation " +
+                "inner join seat on reservation.seat_seatId = seat.seatId " +
+                "inner join category on seat.category_categoryId = category.categoryId " +
+                "inner join guest on guest.guestId = reservation.guest_guestId " +
+                "inner join game on game.gameId = reservation.game_gameId";
+        Statement statement = conn.createStatement();
+        ResultSet resultSet;
+        AsciiTable asciiTable = new AsciiTable();
 
+        asciiTable.getContext().setWidth(200);
+
+        asciiTable.addRule();
+        asciiTable.addRow("id",
+                "Sitznummer",
+                "Sitzreihe",
+                "Preis",
+                "Vorname",
+                "Nachname",
+                "Email",
+                "Zeit");
+
+        resultSet = statement.executeQuery(sqlQuery);
+
+        while (resultSet.next()) {
+            asciiTable.addRule();
+            asciiTable.addRow(resultSet.getInt("reservationId"),
+                    resultSet.getString("seatId"),
+                    resultSet.getString("seatRow"),
+                    resultSet.getString("price"),
+                    resultSet.getString("foreName"),
+                    resultSet.getString("surName"),
+                    resultSet.getString("mail"),
+                    resultSet.getString("time"));
+        }
+
+        System.out.println(asciiTable.render());
+
+        controller.printMenu();
     }
 
     //seat methods
-    public void printSeats(Object gameId) throws SQLException, IOException {
+    public void printSeats(Integer gameId) throws SQLException, IOException {
         controller = new Controller();
         conn = DriverManager.getConnection(dbURL, username, password);
         String getGameRowcoutQuery = "select count(*) from seatreservationlesi.game";
@@ -266,7 +366,7 @@ public class Database {
         resultSet = statement.executeQuery(getGameRowcoutQuery);
         resultSet.next();
         gameRowcount = resultSet.getInt("count(*)");
-        if (gameRowcount > 1) {
+        if (gameRowcount > 0) {
             ArrayList<Integer> gameIds = new ArrayList<>();
             String getGameIdsQuery = "select gameId from seatreservationlesi.game";
             String input;
@@ -313,10 +413,9 @@ public class Database {
                     "where game.gameId = " + idInput + " " +
                     "order by seatId asc";
             resultSet = statement.executeQuery(getSeatsFromGameQuery);
-            resultSet.next();
 
             //this ugly code sets an x everywhere where the id in the row is allocated to a reservation
-            boolean hasnext = true;
+            boolean hasnext = resultSet.next();
 
             for (int i = 1; i <= 50; i++) {
                 if (!hasnext) {
@@ -440,7 +539,7 @@ public class Database {
 
         resultSet = statement.executeQuery(getGameQuery);
 
-        asciiTable.getContext().setWidth(250);
+        asciiTable.getContext().setWidth(150);
         asciiTable.addRule();
         asciiTable.addRow("id",
                 "Zeit",

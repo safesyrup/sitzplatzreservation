@@ -22,6 +22,8 @@ public class Controller {
             case "3":
                 deleteMenu();
                 break;
+            case "4":
+                editMenu();
             default:
                 mainMenu();
         }
@@ -59,6 +61,8 @@ public class Controller {
                 database.printSeats(null);
                 printMenu();
                 break;
+            case "3":
+                database.printReservation();
             case "0":
                 mainMenu();
                 break;
@@ -79,6 +83,19 @@ public class Controller {
             default:
                 deleteMenu();
                 break;
+        }
+    }
+
+    public void chooseEditMenu() throws IOException, SQLException {
+        switch (readline()) {
+            case "1":
+                database.editGuest();
+                break;
+            case "0":
+                mainMenu();
+                break;
+            default:
+                editMenu();
         }
     }
 
@@ -119,5 +136,12 @@ public class Controller {
         System.out.println("0 zurück");
 
         chooseDeleteMenu();
+    }
+
+    public void editMenu() throws IOException, SQLException {
+        System.out.println("1 Gast editieren");
+        System.out.println("0 zurück");
+
+        chooseEditMenu();
     }
 }
