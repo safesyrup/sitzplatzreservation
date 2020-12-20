@@ -1,6 +1,6 @@
 import de.vandermeer.asciitable.AsciiTable;
 
-import java.io.IOException;
+import java.io.*;
 import java.sql.*;
 import java.util.ArrayList;
 
@@ -8,14 +8,17 @@ public class Database {
     Controller controller;
     Connection conn;
 
+    //database connection strings
     final String dbURL = "jdbc:mysql://localhost/seatreservationLeSi?useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC";
     final String username = "root";
     final String password = "root";
 
+    //constructor
     public Database() {
 
     }
 
+    //sets mysql driver
     public void initializeConn() throws ClassNotFoundException {
         Class.forName("com.mysql.cj.jdbc.Driver");
     }
@@ -85,6 +88,7 @@ public class Database {
                     resultSet.getString("mail")
             );
         }
+        asciitable.addRule();
 
         String table = asciitable.render();
         System.out.println(table);
@@ -223,6 +227,7 @@ public class Database {
             asciiTable.addRow(resultSet.getInt("foreignteamId"),
                     resultSet.getString("name"));
         }
+        asciiTable.addRule();
         String table = asciiTable.render();
         System.out.println(table);
         conn.close();
@@ -235,7 +240,7 @@ public class Database {
         conn = DriverManager.getConnection(dbURL, username, password);
         Statement statement = conn.createStatement();
         ResultSet resultSet;
-        ArrayList<Integer> guestIds = new ArrayList<>(), gameIds = new ArrayList<>(), allSeats = new ArrayList<>(), takenSeats = new ArrayList<>(), availableSeats = new ArrayList<>();
+        ArrayList<Integer> guestIds = new ArrayList<>(), gameIds = new ArrayList<>(), allSeats = new ArrayList<>(), takenSeats = new ArrayList<>(), availableSeats;
         String sqlInsertStatement, getGuestIdsQuery, getGamesIdsQuery, getSeatIdsTakenQuery;
         String stringGuestInput, stringGameInput, stringSeatInput;
         int intGuestInput, intGameInput, intSeatInput;
@@ -348,6 +353,7 @@ public class Database {
                     resultSet.getString("mail"),
                     resultSet.getString("time"));
         }
+        asciiTable.addRule();
 
         System.out.println(asciiTable.render());
 
@@ -403,7 +409,7 @@ public class Database {
                 idInput = idTryParseInt(input);
                 idInput = idIsInRange(gameIds, idInput);
             } else {
-                idInput = (int) gameId;
+                idInput = gameId;
             }
 
             String getSeatsFromGameQuery = "select seatId from seatreservationlesi.game " +
@@ -470,6 +476,7 @@ public class Database {
             asciiTable.addRow(row4);
             asciiTable.addRule();
             asciiTable.addRow(row5);
+            asciiTable.addRule();
 
             String table = asciiTable.render();
             System.out.println(table);
@@ -552,6 +559,7 @@ public class Database {
                     resultSet.getString("hometeam"),
                     resultSet.getString("name"));
         }
+        asciiTable.addRule();
 
         String table = asciiTable.render();
         System.out.println(table);
